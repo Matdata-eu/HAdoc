@@ -55,8 +55,12 @@
         .filter((d) => hit(d.id, d.model, d.label, d.hostname))
         .map((d) => ({ id: d.id, label: d.label ?? d.model ?? d.id })),
       ...house.signals
-        .filter((s) => hit(s.id, s.name, s.plc?.name, s.openhab?.item, s.mqtt) && s.point)
-        .map((s) => ({ id: s.point!, label: `${s.name ?? s.id} (${s.openhab?.item ?? s.plc?.name ?? s.mqtt ?? ""})` })),
+        .filter((s) => hit(s.id, s.name, s.plc?.name, s.openhab?.item, s.mqtt) && (s.point || s.port))
+        .map((s) => ({
+          // A signal opens its point, or else the device its port is on.
+          id: s.point ?? s.port!.split(":")[0]!,
+          label: `${s.name ?? s.id} (${s.openhab?.item ?? s.plc?.name ?? s.mqtt ?? ""})`,
+        })),
     ].slice(0, 12);
   });
 
@@ -70,7 +74,20 @@
     }
   }
 
-  async function select(id: string | null) {
+  /** Signals, cables and circuits have no page of their own; open the thing they belong to. */
+  function selectable(id: string): string {
+    if (!house) return id;
+    const signal = house.signals.find((s) => s.id === id);
+    if (signal) return signal.point ?? signal.port?.split(":")[0] ?? id;
+    const cable = house.cables.find((c) => c.id === id);
+    if (cable) return (cable.from ?? cable.to ?? id).split(":")[0]!;
+    const circuit = house.circuits.find((c) => c.id === id);
+    if (circuit?.breaker) return circuit.breaker;
+    return id;
+  }
+
+  async function select(target: string | null) {
+    const id = target === null ? null : selectable(target);
     selected = id;
     query = "";
     showIssues = false;

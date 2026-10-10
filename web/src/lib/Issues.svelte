@@ -9,9 +9,17 @@
 
   let { issues, onselect, onclose }: Props = $props();
 
-  const sorted = $derived(
-    [...issues].sort((a, b) => (a.severity === b.severity ? a.file.localeCompare(b.file) : a.severity === "error" ? -1 : 1)),
-  );
+  // Errors first, then one group per file or import, largest first.
+  const groups = $derived.by(() => {
+    const map = new Map<string, Issue[]>();
+    for (const issue of issues) {
+      const key = `${issue.severity}\u0000${issue.file}`;
+      map.set(key, [...(map.get(key) ?? []), issue]);
+    }
+    return [...map.values()].sort(
+      (a, b) => (a[0]!.severity === b[0]!.severity ? b.length - a.length : a[0]!.severity === "error" ? -1 : 1),
+    );
+  });
 </script>
 
 <aside class="issues">
@@ -19,18 +27,22 @@
     <h2>To check</h2>
     <button class="close" onclick={onclose} aria-label="Close">✕</button>
   </header>
-  {#if sorted.length === 0}
+  {#if groups.length === 0}
     <p>Everything is documented and consistent.</p>
   {:else}
-    <ul>
-      {#each sorted as issue, i (i)}
-        <li class={issue.severity}>
-          <span class="file">{issue.file}</span>
-          {#if issue.id}<button class="link" onclick={() => onselect(issue.id!)}>{issue.id}</button>{/if}
-          <p>{issue.message}</p>
-        </li>
-      {/each}
-    </ul>
+    {#each groups as group (`${group[0]!.severity}${group[0]!.file}`)}
+      <details class={group[0]!.severity} open={group.length <= 10}>
+        <summary><span class="file">{group[0]!.file}</span> {group.length}</summary>
+        <ul>
+          {#each group as issue, i (i)}
+            <li>
+              {#if issue.id}<button class="link" onclick={() => onselect(issue.id!)}>{issue.id}</button>{/if}
+              <span>{issue.message}</span>
+            </li>
+          {/each}
+        </ul>
+      </details>
+    {/each}
   {/if}
 </aside>
 
@@ -55,17 +67,24 @@
     font-size: 18px;
     cursor: pointer;
   }
+  details {
+    border-left: 3px solid var(--warning);
+    padding: 4px 10px;
+    margin: 12px 0;
+  }
+  details.error {
+    border-color: var(--error);
+  }
+  summary {
+    cursor: pointer;
+  }
   ul {
     list-style: none;
     padding: 0;
+    margin: 4px 0 0;
   }
   li {
-    border-left: 3px solid var(--warning);
-    padding: 4px 10px;
-    margin: 8px 0;
-  }
-  li.error {
-    border-color: var(--error);
+    margin: 4px 0;
   }
   .file {
     color: var(--muted);
@@ -80,8 +99,5 @@
     cursor: pointer;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 13px;
-  }
-  p {
-    margin: 2px 0 0;
   }
 </style>

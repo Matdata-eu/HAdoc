@@ -1,10 +1,18 @@
 # yaml-language-server: $schema=../../schema/signals.schema.json
-- id: SIG-0-HAL-SW-01
+# PLC signals are imported from imports/plc-configuration.exp.
+# An entry with the same ID adds to the imported one, here to link it to a point.
+- id: PLC-SB_0_1L
   name: Hall switch
-  port: "plc-di01:DI 01.1"
   point: 0-HAL-SW-01
-  plc: { name: SB_0_1L, address: "%IX4.0" }
-  logic: plc
+
+- id: PLC-R_0_HAL
+  point: 0-HAL-LGT-01
+
+- id: PLC-R_1_BED_UP
+  point: 1-BED-BLD-01
+
+- id: PLC-R_1_BED_DN
+  point: 1-BED-BLD-01
 
 - id: SIG-1-DRS-PIR-01
   name: Dressing room motion

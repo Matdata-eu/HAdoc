@@ -4,27 +4,7 @@
   model: WAGO 750-881
   location: plc-cabinet
   hostname: plc.lan
-  notes: Low-level logic for switches and blinds.
-
-- id: plc-di01
-  kind: io-module
-  model: WAGO 750-403 (4 DI 24V)
-  label: DI 01
-  location: plc
-  ports:
-    - { name: "DI 01.1", signal: DI 24V }
-    - { name: "DI 01.2", signal: DI 24V }
-    - { name: "DI 01.3", signal: DI 24V }
-    - { name: "DI 01.4", signal: DI 24V }
-
-- id: plc-do01
-  kind: io-module
-  model: WAGO 750-504 (4 DO 24V)
-  label: DO 01
-  location: plc
-  ports:
-    - { name: "DO 01.1", signal: DO 24V }
-    - { name: "DO 01.2", signal: DO 24V }
+  notes: Low-level logic for switches and blinds. Its I/O modules come from imports/plc-configuration.exp.
 
 - id: esp-dressing
   kind: esp

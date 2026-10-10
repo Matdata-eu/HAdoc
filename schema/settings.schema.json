@@ -5,21 +5,38 @@
   "description": "House-wide settings, including the configurable point ID scheme and abbreviations.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["ids", "levels", "types"],
+  "required": [
+    "ids",
+    "levels",
+    "types"
+  ],
   "properties": {
-    "name": { "type": "string", "description": "Name of the house, shown in the app header." },
-    "language": { "type": "string", "description": "UI language hint, e.g. 'nl' or 'en'." },
+    "name": {
+      "type": "string",
+      "description": "Name of the house, shown in the app header."
+    },
+    "language": {
+      "type": "string",
+      "description": "UI language hint, e.g. 'nl' or 'en'."
+    },
     "ids": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["pattern"],
+      "required": [
+        "pattern"
+      ],
       "properties": {
         "pattern": {
           "type": "string",
           "description": "Point ID pattern. Placeholders: {level}, {room}, {type}, {nr}.",
           "default": "{level}-{room}-{type}-{nr}"
         },
-        "nr_digits": { "type": "integer", "minimum": 1, "maximum": 6, "default": 2 }
+        "nr_digits": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6,
+          "default": 2
+        }
       }
     },
     "levels": {
@@ -28,10 +45,18 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["code", "name"],
+        "required": [
+          "code",
+          "name"
+        ],
         "properties": {
-          "code": { "type": "string", "pattern": "^[A-Za-z0-9]+$" },
-          "name": { "type": "string" }
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9]+$"
+          },
+          "name": {
+            "type": "string"
+          }
         }
       }
     },
@@ -41,12 +66,61 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["code", "name"],
+        "required": [
+          "code",
+          "name"
+        ],
         "properties": {
-          "code": { "type": "string", "pattern": "^[A-Za-z0-9]+$" },
-          "name": { "type": "string" },
-          "symbol": { "type": "string", "description": "Short text shown on the plan symbol; defaults to the code." },
-          "layer": { "enum": ["power", "data", "automation", "hidden"], "default": "power" }
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9]+$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "symbol": {
+            "type": "string",
+            "description": "Short text shown on the plan symbol; defaults to the code."
+          },
+          "layer": {
+            "enum": [
+              "power",
+              "data",
+              "automation",
+              "hidden"
+            ],
+            "default": "power"
+          }
+        }
+      }
+    },
+    "imports": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Files exported from other systems, read on every load.",
+      "properties": {
+        "wago": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "config"
+          ],
+          "description": "CODESYS 2.3 PLC configuration export (Project > Export, PLC configuration).",
+          "properties": {
+            "config": {
+              "type": "string",
+              "description": "Path relative to the data folder, e.g. imports/PLC CONFIGURATION.EXP."
+            },
+            "controller": {
+              "type": "string",
+              "description": "Device ID of the PLC; modules get it as their location."
+            },
+            "id_prefix": {
+              "type": "string",
+              "default": "plc-",
+              "description": "Prefix for module device IDs."
+            }
+          }
         }
       }
     }
