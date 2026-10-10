@@ -24,9 +24,35 @@
   firmware: Tasmota
   hostname: sonoff-mirror
 
+- id: X1
+  kind: terminal-block
+  label: X1
+  model: 24 V DC distribution
+  location: plc-cabinet
+  ports:
+    - { name: "1", signal: +24V }
+    - { name: "2", signal: +24V }
+    - { name: "3", signal: +24V }
+    - { name: "4", signal: +24V }
+
+- id: F1
+  kind: breaker
+  model: C16
+  location: board-main
+
+- id: F2
+  kind: breaker
+  model: C10
+  location: board-main
+
 - id: F3
   kind: breaker
   model: C16
+  location: board-main
+
+- id: F4
+  kind: breaker
+  model: C6
   location: board-main
 
 - id: RCD1

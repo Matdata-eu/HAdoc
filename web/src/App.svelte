@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { api, type HouseData, type Issue, type Trace } from "./lib/api";
+  import { api, type EditActions, type HouseData, type Issue, type Trace, type XY } from "./lib/api";
+  import { circuitColours } from "./lib/colours";
   import Details from "./lib/Details.svelte";
   import FloorPlan from "./lib/FloorPlan.svelte";
   import Issues from "./lib/Issues.svelte";
@@ -15,6 +16,12 @@
   let issues = $state<Issue[]>([]);
   let query = $state("");
   let layers = $state<Record<string, boolean>>({ power: true, automation: true, data: true, hidden: true, cables: true });
+  let byCircuit = $state(false);
+  let editing = $state(false);
+  /** What a tap on the plan does in edit mode: place a point, or add a corner to a cable route. */
+  let tool = $state<{ kind: "place"; id: string } | { kind: "route"; id: string; path: XY[] } | null>(null);
+  let toast = $state<{ text: string; error?: boolean } | null>(null);
+  let toastTimer: ReturnType<typeof setTimeout> | undefined;
 
   const LAYERS = [
     ["power", "Power"],
@@ -27,11 +34,27 @@
   const floor = $derived(house?.site.floors.find((f) => f.level === level) ?? house?.site.floors[0]);
   const levelName = (code: string) => house?.settings.levels.find((l) => l.code === code)?.name ?? code;
 
+  const circuitColour = $derived(circuitColours(house?.circuits.map((c) => c.id) ?? []));
+  const pointColours = $derived.by(() => {
+    if (!byCircuit || !house) return null;
+    const map = new Map<string, string>();
+    for (const p of house.points) {
+      const c = house.circuitOf[p.id];
+      if (c) map.set(p.id, circuitColour.get(c)!);
+    }
+    return map;
+  });
+
   // Everything on the traced path lights up on the plan.
   const highlight = $derived.by(() => {
     const ids = new Set<string>();
     if (!trace) return ids;
     ids.add(trace.subject.id);
+    // A breaker lights up everything on its circuit.
+    for (const c of house?.circuits ?? []) {
+      if (c.breaker !== trace.subject.id) continue;
+      for (const [id, circuit] of Object.entries(house!.circuitOf)) if (circuit === c.id) ids.add(id);
+    }
     if (trace.location) ids.add(trace.location.id);
     for (const c of trace.contains) ids.add(c.id);
     for (const end of trace.cables) {
@@ -111,6 +134,64 @@
     }
   }
 
+  function say(text: string, error = false) {
+    toast = { text, error };
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => (toast = null), error ? 6000 : 2500);
+  }
+
+  /** Runs an edit, then reloads so the plan and the panel show the saved state. */
+  async function save(edit: () => Promise<{ id: string; file: string; committed: boolean }>, reselect?: (id: string) => string | null) {
+    try {
+      const result = await edit();
+      await load();
+      const next = reselect ? reselect(result.id) : selected;
+      if (next) await select(next);
+      say(`Saved in ${result.file}${result.committed ? " and committed" : ""}`);
+      return result;
+    } catch (err) {
+      say((err as Error).message, true);
+      return null;
+    }
+  }
+
+  const actions: EditActions = {
+    place: (id) => {
+      const p = house?.points.find((q) => q.id === id);
+      if (p) level = p.level;
+      tool = { kind: "place", id };
+    },
+    route: (id) => (tool = { kind: "route", id, path: [] }),
+    link: (signal, point) => void save(() => api.linkSignal(signal, point)),
+    create: async (point) => {
+      // A new point opens straight away, ready to be placed.
+      const created = await save(() => api.createPoint(point), (id) => id);
+      if (created) tool = { kind: "place", id: created.id };
+    },
+  };
+
+  function onplan(pos: XY) {
+    if (tool?.kind === "place") {
+      const id = tool.id;
+      tool = null;
+      void save(() => api.movePoint(id, pos));
+    } else if (tool?.kind === "route") {
+      tool = { ...tool, path: [...tool.path, pos] };
+    }
+  }
+
+  function saveRoute(path: XY[] | null) {
+    if (tool?.kind !== "route" || !floor) return;
+    const { id } = tool;
+    tool = null;
+    void save(() => api.setRoute(id, floor.level, path));
+  }
+
+  function toggleEditing() {
+    editing = !editing;
+    tool = null;
+  }
+
   async function openIssues() {
     issues = await api.issues();
     selected = null;
@@ -147,6 +228,9 @@
         {/if}
       </div>
 
+      {#if house.editable}
+        <button class="edit-btn" class:active={editing} onclick={toggleEditing}>{editing ? "Done" : "Edit"}</button>
+      {/if}
       <button class="issues-btn" onclick={openIssues} title="Errors and undocumented items">
         {#if house.issueCount.errors}<span class="dot error"></span>{house.issueCount.errors}{/if}
         {#if house.issueCount.warnings}<span class="dot warning"></span>{house.issueCount.warnings}{/if}
@@ -163,17 +247,59 @@
         <FloorPlan
           {floor}
           points={house.points}
-          cables={house.cables}
+          cables={tool?.kind === "route" ? house.cables.filter((c) => c.id !== tool!.id) : house.cables}
           settings={house.settings}
           {layers}
           {selected}
           {highlight}
+          colours={pointColours}
+          {editing}
+          draft={tool?.kind === "route" ? tool.path : null}
           onselect={select}
+          onplan={tool ? onplan : null}
+          onmove={(id, pos) => void save(() => api.movePoint(id, pos))}
         />
-        <div class="layers" role="group" aria-label="Layers">
-          {#each LAYERS as [key, name] (key)}
-            <label class="layer-{key}"><input type="checkbox" bind:checked={layers[key]} /> {name}</label>
-          {/each}
+
+        {#if tool}
+          <div class="toolbar" role="toolbar">
+            {#if tool.kind === "place"}
+              <span>Tap where <strong>{tool.id}</strong> is on {levelName(floor.level)}.</span>
+            {:else}
+              {@const route = tool}
+              {@const existing = house.cables.find((c) => c.id === route.id)?.route?.some((r) => r.level === floor.level)}
+              <span>Tap the corners of <strong>{route.id}</strong> on {levelName(floor.level)}; tapping a point snaps to it.</span>
+              <button class="small" disabled={!route.path.length} onclick={() => (tool = { ...route, path: route.path.slice(0, -1) })}>Undo</button>
+              {#if existing}<button class="small" onclick={() => saveRoute(null)}>Remove route</button>{/if}
+              <button class="small primary" disabled={route.path.length < 2} onclick={() => saveRoute(route.path)}>Save</button>
+            {/if}
+            <button class="small" onclick={() => (tool = null)}>Cancel</button>
+          </div>
+        {/if}
+
+        {#if toast}
+          <div class="toast" class:error={toast.error} role="status">{toast.text}</div>
+        {/if}
+
+        {#if byCircuit}
+          <ul class="legend" aria-label="Circuits">
+            {#each house.circuits as c (c.id)}
+              <li>
+                <button onclick={() => select(c.id)}>
+                  <span class="swatch" style:background={circuitColour.get(c.id)}></span>
+                  <strong>{c.id}</strong> {c.name ?? ""}
+                </button>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+
+        <div class="overlay">
+          <div class="layers" role="group" aria-label="Layers">
+            {#each LAYERS as [key, name] (key)}
+              <label class="layer-{key}"><input type="checkbox" bind:checked={layers[key]} /> {name}</label>
+            {/each}
+            <label><input type="checkbox" bind:checked={byCircuit} /> Colour by circuit</label>
+          </div>
         </div>
       </div>
     {:else if house}
@@ -183,7 +309,16 @@
     {/if}
 
     {#if house && selected}
-      <Details {house} {trace} loading={loadingTrace} onselect={select} onclose={() => select(null)} />
+      <Details
+        {house}
+        {trace}
+        loading={loadingTrace}
+        {editing}
+        level={floor?.level ?? null}
+        {actions}
+        onselect={select}
+        onclose={() => select(null)}
+      />
     {:else if showIssues}
       <Issues {issues} onselect={select} onclose={() => (showIssues = false)} />
     {/if}
@@ -215,6 +350,7 @@
     gap: 4px;
   }
   .floors button,
+  .edit-btn,
   .issues-btn {
     border: 1px solid var(--border);
     background: var(--bg);
@@ -222,7 +358,8 @@
     padding: 4px 12px;
     cursor: pointer;
   }
-  .floors button.active {
+  .floors button.active,
+  .edit-btn.active {
     background: var(--accent);
     border-color: var(--accent);
     color: #fff;
@@ -301,11 +438,85 @@
     position: relative;
     min-height: 0;
   }
-  .layers {
+  .overlay {
     position: absolute;
     left: 12px;
     bottom: 12px;
     bottom: max(12px, env(safe-area-inset-bottom));
+    display: grid;
+    gap: 6px;
+    justify-items: start;
+  }
+  .legend {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    margin: 0;
+    padding: 4px;
+    list-style: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    max-height: 40vh;
+    overflow-y: auto;
+  }
+  .legend button {
+    border: 0;
+    background: none;
+    padding: 2px 6px;
+    cursor: pointer;
+    text-align: left;
+  }
+  .swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 4px;
+  }
+  .toolbar {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    right: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 14px;
+  }
+  .toolbar span {
+    flex: 1 1 200px;
+  }
+  .toast {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--text);
+    color: var(--bg);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 14px;
+    pointer-events: none;
+  }
+  .toast.error {
+    background: var(--error);
+    color: #fff;
+  }
+  .toolbar ~ .legend {
+    display: none;
+  }
+  .toolbar ~ .toast {
+    top: auto;
+    bottom: 64px;
+  }
+  .layers {
     display: flex;
     flex-wrap: wrap;
     gap: 4px 12px;
@@ -331,7 +542,7 @@
       border-top: 1px solid var(--border);
       border-radius: 12px 12px 0 0;
     }
-    .layers {
+    .overlay {
       right: 12px;
     }
   }

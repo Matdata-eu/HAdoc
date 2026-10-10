@@ -7,5 +7,12 @@ const webDir = process.env.HADOC_WEB ?? fileURLToPath(new URL("../../web/dist/",
 const port = Number(process.env.PORT ?? 8080);
 const host = process.env.HOST ?? "0.0.0.0";
 
-const app = await buildApp({ dataDir, webDir, watch: true, logger: true });
+const app = await buildApp({
+  dataDir,
+  webDir,
+  watch: true,
+  logger: true,
+  readOnly: process.env.HADOC_READONLY === "1",
+  gitCommit: process.env.HADOC_GIT_COMMIT === "1",
+});
 await app.listen({ port, host });

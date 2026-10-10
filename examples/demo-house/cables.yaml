@@ -4,6 +4,12 @@
   type: SVV 4x0.8
   from: 0-HAL-SW-01
   to: "plc-di01:DI 01.1"
+  # Double switch: one core per button, plus the 24 V feed.
+  cores:
+    - {colour: white, from: 0-HAL-SW-01, to: "plc-di01:DI 01.1"}
+    - {colour: brown, from: 0-HAL-SW-01, to: "plc-di01:DI 01.2"}
+    - {colour: green, from: 0-HAL-SW-01, to: "X1:1"}
+    - {colour: yellow, from: null, to: null}
   route:
     - level: "0"
       path: [[40, 760], [20, 760], [20, 20]]

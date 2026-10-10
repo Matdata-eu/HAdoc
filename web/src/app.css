@@ -60,3 +60,23 @@ button {
   font: inherit;
   color: inherit;
 }
+
+button.small {
+  font: inherit;
+  font-size: 13px;
+  padding: 3px 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+}
+button.small.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+button.small:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

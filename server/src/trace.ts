@@ -110,6 +110,14 @@ export function traceThing(house: House, index: HouseIndex, id: string): Trace |
   for (const cable of house.cables) {
     if (touches(cable.from)) cables.push({ cable, here: cable.from!, there: cable.to ? refFor(index, cable.to) : null });
     else if (touches(cable.to)) cables.push({ cable, here: cable.to!, there: cable.from ? refFor(index, cable.from) : null });
+    else {
+      // Only a core lands here, e.g. one core of a multi-core cable on a terminal.
+      const core = cable.cores?.find((k) => touches(k.from) || touches(k.to));
+      if (!core) continue;
+      const atFrom = touches(core.from);
+      const there = atFrom ? cable.to : cable.from;
+      cables.push({ cable, here: (atFrom ? core.from : core.to)!, there: there ? refFor(index, there) : null });
+    }
   }
 
   const signals = house.signals.filter((s) => (s.point != null && here.has(s.point)) || touches(s.port));
@@ -122,7 +130,7 @@ export function traceThing(house: House, index: HouseIndex, id: string): Trace |
             name: p.name,
             signal: p.signal,
             signals: house.signals.filter((s) => s.port === ref),
-            cables: cables.filter((c) => c.here === ref),
+            cables: cables.filter((c) => c.here === ref || c.cable.cores?.some((k) => k.from === ref || k.to === ref)),
           };
         })
       : [];

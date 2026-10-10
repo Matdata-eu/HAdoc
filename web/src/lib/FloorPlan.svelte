@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Cable, Floor, Point, Settings } from "./api";
+  import type { Cable, Floor, Point, Settings, XY } from "./api";
 
   interface Props {
     floor: Floor;
@@ -9,10 +9,33 @@
     layers: Record<string, boolean>;
     selected: string | null;
     highlight: Set<string>;
+    /** Fill colour per point, e.g. by circuit; points without one are drawn neutral. */
+    colours?: Map<string, string> | null;
+    /** In edit mode points can be dragged. */
+    editing?: boolean;
+    /** Route being drawn; shown on top and not selectable. */
+    draft?: XY[] | null;
     onselect: (id: string | null) => void;
+    /** A tap while a tool is active, already snapped to a point when one was tapped. */
+    onplan?: ((pos: XY) => void) | null;
+    onmove?: (id: string, pos: XY) => void;
   }
 
-  let { floor, points, cables, settings, layers, selected, highlight, onselect }: Props = $props();
+  let {
+    floor,
+    points,
+    cables,
+    settings,
+    layers,
+    selected,
+    highlight,
+    colours = null,
+    editing = false,
+    draft = null,
+    onselect,
+    onplan = null,
+    onmove,
+  }: Props = $props();
 
   const margin = 40;
   let view = $state({ x: -margin, y: -margin, w: 0, h: 0 });
@@ -64,14 +87,23 @@
   }
 
   // Pointer handling: one finger pans, two fingers pinch, a short tap selects.
+  // In edit mode, a finger that starts on a point drags the point instead.
   const pointers = new Map<number, { x: number; y: number }>();
   let moved = 0;
   let pinchDist = 0;
+  let drag = $state<{ id: string; pos: XY } | null>(null);
+
+  const pointAt = (e: Event) => {
+    const id = (e.target as Element).closest(".point")?.getAttribute("data-id");
+    return id ? points.find((p) => p.id === id) : undefined;
+  };
 
   function onpointerdown(e: PointerEvent) {
     svg!.setPointerCapture(e.pointerId);
     pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     moved = 0;
+    const p = editing && !onplan && pointers.size === 1 ? pointAt(e) : undefined;
+    drag = p?.pos ? { id: p.id, pos: p.pos } : null;
     if (pointers.size === 2) {
       const [a, b] = [...pointers.values()] as [{ x: number; y: number }, { x: number; y: number }];
       pinchDist = Math.hypot(a.x - b.x, a.y - b.y);
@@ -85,7 +117,9 @@
     pointers.set(e.pointerId, next);
     moved += Math.hypot(next.x - prev.x, next.y - prev.y);
 
-    if (pointers.size === 1) {
+    if (drag && pointers.size === 1) {
+      drag = { id: drag.id, pos: toPlan(next.x, next.y) };
+    } else if (pointers.size === 1) {
       const [x0, y0] = toPlan(prev.x, prev.y);
       const [x1, y1] = toPlan(next.x, next.y);
       view = { ...view, x: view.x - (x1 - x0), y: view.y - (y1 - y0) };
@@ -100,7 +134,21 @@
   function onpointerup(e: PointerEvent) {
     const wasTap = pointers.size === 1 && moved < 8;
     pointers.delete(e.pointerId);
+    if (drag) {
+      const done = drag;
+      drag = null;
+      if (!wasTap) {
+        onmove?.(done.id, [Math.round(done.pos[0]), Math.round(done.pos[1])]);
+        return;
+      }
+    }
     if (!wasTap) return;
+    if (onplan) {
+      const snap = pointAt(e)?.pos;
+      const [x, y] = snap ?? toPlan(e.clientX, e.clientY);
+      onplan([Math.round(x), Math.round(y)]);
+      return;
+    }
     const target = (e.target as Element).closest("[data-id]");
     onselect(target?.getAttribute("data-id") ?? null);
   }
@@ -109,6 +157,7 @@
 <svg
   bind:this={svg}
   class="plan"
+  class:tool={onplan}
   viewBox="{view.x} {view.y} {view.w} {view.h}"
   role="application"
   aria-label="Floor plan"
@@ -149,18 +198,33 @@
 
   {#each visiblePoints as p (p.id)}
     {@const info = typeInfo.get(p.type)}
+    {@const pos = drag?.id === p.id ? drag.pos : p.pos!}
     <g
       class="point layer-{info?.layer ?? 'power'}"
       class:selected={selected === p.id}
       class:lit={highlight.has(p.id)}
+      class:movable={editing && !onplan}
+      class:dragging={drag?.id === p.id}
+      style={colours ? `--c: ${colours.get(p.id) ?? "var(--muted)"}` : undefined}
       data-id={p.id}
-      transform="translate({p.pos![0]} {p.pos![1]})"
+      transform="translate({pos[0]} {pos[1]})"
     >
       <title>{p.name ?? p.id}</title>
       <circle r={r} stroke-width={r / 6} />
       <text font-size={r * 0.75} dy={r * 0.28}>{info?.symbol ?? p.type}</text>
     </g>
   {/each}
+
+  {#if draft}
+    <g class="draft">
+      {#if draft.length > 1}
+        <polyline points={draft.map((p) => p.join(",")).join(" ")} stroke-width={r / 3} />
+      {/if}
+      {#each draft as [x, y], i (i)}
+        <circle cx={x} cy={y} r={r / 3} />
+      {/each}
+    </g>
+  {/if}
 </svg>
 
 <style>
@@ -171,6 +235,26 @@
     touch-action: none;
     user-select: none;
     cursor: grab;
+  }
+  .plan.tool,
+  .plan.tool .point {
+    cursor: crosshair;
+  }
+  .point.movable {
+    cursor: move;
+  }
+  .point.dragging {
+    opacity: 0.7;
+  }
+  .draft polyline {
+    fill: none;
+    stroke: var(--accent);
+    stroke-linejoin: round;
+    pointer-events: none;
+  }
+  .draft circle {
+    fill: var(--accent);
+    pointer-events: none;
   }
   .room polygon {
     fill: var(--room);

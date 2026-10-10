@@ -10,7 +10,7 @@
     "required": ["id", "kind"],
     "properties": {
       "id": { "type": "string" },
-      "kind": { "enum": ["plc", "io-module", "esp", "relay", "psu", "breaker", "rcd", "switch", "other"] },
+      "kind": { "enum": ["plc", "io-module", "esp", "relay", "psu", "breaker", "rcd", "switch", "terminal-block", "other"] },
       "model": { "type": ["string", "null"] },
       "label": { "type": "string", "description": "Physical label, e.g. 'DI 01'." },
       "location": { "type": "string", "description": "Point or enclosure where the device sits." },

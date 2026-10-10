@@ -1,4 +1,20 @@
 # yaml-language-server: $schema=../../schema/circuits.schema.json
+- id: F1
+  name: Sockets ground floor
+  breaker: F1
+  rating: C16
+  rcd: RCD1
+  phase: L1
+  feeds: [0-KIT-SKT-01]
+
+- id: F2
+  name: Lights ground floor
+  breaker: F2
+  rating: C10
+  rcd: RCD1
+  phase: L2
+  feeds: [0-HAL-LGT-01]
+
 - id: F3
   name: Lights first floor
   breaker: F3
@@ -6,3 +22,11 @@
   rcd: RCD1
   phase: L1
   feeds: [1-DRS-LGT-01, sonoff-mirror, 1-BED-BLD-01]
+
+- id: F4
+  name: PLC cabinet
+  breaker: F4
+  rating: C6
+  rcd: RCD1
+  phase: L3
+  feeds: [plc]
