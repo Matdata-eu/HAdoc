@@ -26,3 +26,15 @@ imports:
   wago:
     config: imports/plc-configuration.exp
     controller: plc
+  # ESPHome node configs; every pin they use becomes a port on the ESP.
+  esphome:
+    dir: imports/esphome
+
+# Live connections, polled while the app runs. Secrets come from environment
+# variables (HADOC_OPENHAB_TOKEN, HADOC_UNIFI_KEY, ...), never from this file.
+# integrations:
+#   poll_seconds: 60
+#   openhab: { url: "http://192.168.2.31:8080" }
+#   unifi: { url: "https://unifi.example.com", subnets: [192.168.20.0/24] }
+#   tasmota: {}
+#   mqtt: { url: "mqtt://192.168.2.9:1883" }

@@ -14,8 +14,7 @@
   hostname: esp-dressing
   mac: null
   powered_by: sonoff-mirror
-  ports:
-    - { name: GPIO14, signal: GPIO }
+  # Ports come from imports/esphome/esp-dressing.yaml.
 
 - id: sonoff-mirror
   kind: relay

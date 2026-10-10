@@ -1,11 +1,14 @@
 import type { House, Issue, XY } from "../../../server/src/model.ts";
 import type { Trace } from "../../../server/src/trace.ts";
+import type { LiveSnapshot } from "../../../server/src/live/index.ts";
+import type { OhRule } from "../../../server/src/live/openhab.ts";
 
 export type { Cable, Circuit, Device, Floor, House, Issue, Point, Settings, Signal, XY } from "../../../server/src/model.ts";
 export type { Trace, ThingRef } from "../../../server/src/trace.ts";
+export type { LiveDevice, LiveItem, LiveSnapshot } from "../../../server/src/live/index.ts";
 
 export type HouseData = Omit<House, "issues"> & {
-  issueCount: { errors: number; warnings: number };
+  issueCount: { errors: number; warnings: number; info: number };
   /** Point or device ID to the circuit that feeds it. */
   circuitOf: Record<string, string>;
   /** False when the server refuses edits. */
@@ -48,6 +51,8 @@ type Saved = { id: string; file: string; committed: boolean };
 export const api = {
   house: () => getJson<HouseData>("/api/house"),
   issues: () => getJson<Issue[]>("/api/issues"),
+  live: () => getJson<LiveSnapshot>("/api/live"),
+  rule: (uid: string) => getJson<OhRule>(`/api/live/rules/${encodeURIComponent(uid)}`),
   trace: (id: string) => getJson<Trace>(`/api/trace/${encodeURIComponent(id)}`),
 
   movePoint: (id: string, pos: XY | null) => send<Saved>("PATCH", `/api/points/${encodeURIComponent(id)}`, { pos }),

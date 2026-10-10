@@ -11,7 +11,17 @@ export interface Settings {
   types: { code: string; name: string; symbol?: string; layer?: Layer }[];
   imports?: {
     wago?: { config: string; controller?: string; id_prefix?: string };
+    esphome?: { dir: string };
   };
+  integrations?: Integrations;
+}
+
+export interface Integrations {
+  poll_seconds?: number;
+  openhab?: { url: string; token_env?: string };
+  unifi?: { url: string; api_path?: string; site?: string; key_env?: string; subnets?: string[] };
+  tasmota?: { user_env?: string; password_env?: string };
+  mqtt?: { url: string; username_env?: string; password_env?: string };
 }
 
 export type Layer = "power" | "data" | "automation" | "hidden";
@@ -62,6 +72,8 @@ export interface Enclosure {
 export interface Port {
   name: string;
   signal?: string;
+  /** What the firmware config uses it for; set by imports such as ESPHome. */
+  use?: string;
 }
 
 export interface Device {
@@ -116,7 +128,8 @@ export interface Signal {
 }
 
 export interface Issue {
-  severity: "error" | "warning";
+  /** "info" is for what is found elsewhere but not documented here yet. */
+  severity: "error" | "warning" | "info";
   file: string;
   id?: string;
   message: string;

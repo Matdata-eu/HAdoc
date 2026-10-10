@@ -121,6 +121,120 @@
               "description": "Prefix for module device IDs."
             }
           }
+        },
+        "esphome": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "dir"
+          ],
+          "description": "Folder with ESPHome node configs (the ESPHome dashboard's config folder). Pins become device ports.",
+          "properties": {
+            "dir": {
+              "type": "string",
+              "description": "Path relative to the data folder, or absolute, e.g. /esphome."
+            }
+          }
+        }
+      }
+    },
+    "integrations": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Live connections to other systems, polled while the app runs. Secrets come from environment variables, never from this file.",
+      "properties": {
+        "poll_seconds": {
+          "type": "number",
+          "minimum": 10,
+          "default": 60
+        },
+        "openhab": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "url"
+          ],
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "e.g. http://192.168.2.31:8080"
+            },
+            "token_env": {
+              "type": "string",
+              "description": "Variable holding an API token. Default HADOC_OPENHAB_TOKEN."
+            }
+          }
+        },
+        "unifi": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "url"
+          ],
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "Network application URL, e.g. https://unifi.example.com"
+            },
+            "api_path": {
+              "type": "string",
+              "default": "/integration/v1",
+              "description": "'/integration/v1' for a self-hosted Network application, '/proxy/network/integration/v1' on a UniFi OS console."
+            },
+            "site": {
+              "type": "string",
+              "default": "default",
+              "description": "Site name or ID."
+            },
+            "key_env": {
+              "type": "string",
+              "description": "Variable holding the Integration API key. Default HADOC_UNIFI_KEY."
+            },
+            "subnets": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^\\d+\\.\\d+\\.\\d+\\.\\d+/\\d+$"
+              },
+              "description": "Only report unknown clients in these subnets, e.g. ['192.168.20.0/24'] for the IoT VLAN. Default: every client."
+            }
+          }
+        },
+        "tasmota": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Polls every device with firmware Tasmota and a hostname.",
+          "properties": {
+            "user_env": {
+              "type": "string",
+              "description": "Variable with the web user, when a password is set. Default HADOC_TASMOTA_USER."
+            },
+            "password_env": {
+              "type": "string",
+              "description": "Variable with the web password. Default HADOC_TASMOTA_PASSWORD."
+            }
+          }
+        },
+        "mqtt": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "url"
+          ],
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "e.g. mqtt://192.168.2.9:1883"
+            },
+            "username_env": {
+              "type": "string",
+              "description": "Default HADOC_MQTT_USER."
+            },
+            "password_env": {
+              "type": "string",
+              "description": "Default HADOC_MQTT_PASSWORD."
+            }
+          }
         }
       }
     }

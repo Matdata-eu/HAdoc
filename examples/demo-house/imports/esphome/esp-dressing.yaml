@@ -1,0 +1,40 @@
+# A copy of the ESPHome config, as an example for imports.esphome.
+substitutions:
+  name: esp-dressing
+
+esphome:
+  name: ${name}
+
+esp8266:
+  board: nodemcuv2
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+mqtt:
+  broker: 192.168.2.9
+
+binary_sensor:
+  - platform: gpio
+    pin: GPIO14
+    name: Motion
+    device_class: motion
+
+  - platform: gpio
+    pin:
+      number: GPIO12
+      inverted: true
+      mode: INPUT_PULLUP
+    name: Door contact
+
+i2c:
+  sda: GPIO4
+  scl: GPIO5
+
+sensor:
+  - platform: bme280_i2c
+    temperature:
+      name: Dressing temperature
+    humidity:
+      name: Dressing humidity
