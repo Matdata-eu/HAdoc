@@ -1,0 +1,15 @@
+# yaml-language-server: $schema=../../schema/signals.schema.json
+- id: SIG-0-HAL-SW-01
+  name: Hall switch
+  port: "plc-di01:DI 01.1"
+  point: 0-HAL-SW-01
+  plc: { name: SB_0_1L, address: "%IX4.0" }
+  logic: plc
+
+- id: SIG-1-DRS-PIR-01
+  name: Dressing room motion
+  port: "esp-dressing:GPIO14"
+  point: 1-DRS-PIR-01
+  mqtt: esp-dressing/binary_sensor/motion/state
+  openhab: { thing: null, item: Dressing_Motion }
+  logic: openhab

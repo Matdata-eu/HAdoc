@@ -1,0 +1,10 @@
+{
+  "name": "HAdoc",
+  "short_name": "HAdoc",
+  "description": "Home automation documentation: what is this thing, how is it wired, what controls it.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1f6feb",
+  "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

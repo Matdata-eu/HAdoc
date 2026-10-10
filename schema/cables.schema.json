@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hadoc.dev/schema/cables.schema.json",
+  "title": "HAdoc cables",
+  "description": "Physical cables. Endpoints are a point ID, a device ID, or 'device:port'.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "from", "to"],
+    "properties": {
+      "id": { "type": "string", "description": "The label already on the cable." },
+      "type": { "type": ["string", "null"], "description": "e.g. 'XVB 3G2.5', 'UTP Cat6', 'SVV 4x0.8'." },
+      "length": { "type": ["number", "null"], "description": "Length in metres." },
+      "from": { "type": ["string", "null"] },
+      "to": { "type": ["string", "null"] },
+      "cores": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["colour"],
+          "properties": {
+            "colour": { "type": "string" },
+            "from": { "type": ["string", "null"] },
+            "to": { "type": ["string", "null"] }
+          }
+        }
+      },
+      "route": {
+        "type": "array",
+        "description": "Route on a floor plan, in cm.",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["level", "path"],
+          "properties": {
+            "level": { "type": "string" },
+            "path": { "type": "array", "items": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }, "minItems": 2 }
+          }
+        }
+      },
+      "notes": { "type": "string" }
+    }
+  }
+}

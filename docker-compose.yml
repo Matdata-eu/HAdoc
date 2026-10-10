@@ -1,0 +1,11 @@
+# Example: run HAdoc next to openHAB. Point the volume at a git checkout of your house data.
+services:
+  hadoc:
+    image: ghcr.io/matdata-eu/hadoc:latest
+    build: .
+    container_name: hadoc
+    restart: unless-stopped
+    ports:
+      - "8090:8080"
+    volumes:
+      - ./house:/data

@@ -1,0 +1,14 @@
+# yaml-language-server: $schema=../../schema/enclosures.schema.json
+- id: board-main
+  name: Main distribution board
+  level: MIN1
+  room: null
+  pos: null
+  rails: 4
+
+- id: plc-cabinet
+  name: PLC cabinet
+  level: MIN1
+  room: null
+  pos: null
+  rails: 3

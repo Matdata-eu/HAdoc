@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hadoc.dev/schema/signals.schema.json",
+  "title": "HAdoc signals",
+  "description": "Logical I/O: where software sees a physical port.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "port"],
+    "properties": {
+      "id": { "type": "string" },
+      "name": { "type": "string" },
+      "port": { "type": ["string", "null"], "description": "'device:port' this signal reads or drives." },
+      "point": { "type": ["string", "null"], "description": "Point this signal belongs to." },
+      "plc": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": ["string", "null"], "description": "Software name, e.g. SB_0_8L." },
+          "address": { "type": ["string", "null"], "description": "IEC address, e.g. %IX4.2." },
+          "modbus": { "type": ["string", "null"] }
+        }
+      },
+      "mqtt": { "type": ["string", "null"] },
+      "openhab": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "thing": { "type": ["string", "null"] },
+          "item": { "type": ["string", "null"] }
+        }
+      },
+      "logic": { "enum": ["plc", "openhab", "both", "none", null] },
+      "notes": { "type": "string" }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=../../schema/settings.schema.json
+name: Demo house
+language: en
+
+# Point IDs. Change the pattern and the abbreviations to your own convention.
+ids:
+  pattern: "{level}-{room}-{type}-{nr}"
+  nr_digits: 2
+
+levels:
+  - { code: MIN1, name: Basement }
+  - { code: "0", name: Ground floor }
+  - { code: "1", name: First floor }
+
+types:
+  - { code: SW, name: Wall switch, layer: automation }
+  - { code: PIR, name: Motion sensor, layer: automation }
+  - { code: LGT, name: Light, layer: power }
+  - { code: SKT, name: Socket, layer: power }
+  - { code: BLD, name: Blind motor, layer: automation }
+  - { code: ESP, name: Hidden ESP board, layer: hidden }
+  - { code: JB, name: Junction box, layer: hidden }
