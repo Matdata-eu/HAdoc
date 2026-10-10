@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=../../schema/site.schema.json
+# Coordinates in centimetres, origin at the top-left corner of each floor.
+floors:
+  - level: "0"
+    width: 1000
+    height: 800
+    rooms:
+      - code: HAL
+        name: Hall
+        outline: [[0, 0], [300, 0], [300, 800], [0, 800]]
+      - code: KIT
+        name: Kitchen
+        outline: [[300, 0], [1000, 0], [1000, 450], [300, 450]]
+      - code: LIV
+        name: Living room
+        outline: [[300, 450], [1000, 450], [1000, 800], [300, 800]]
+  - level: "1"
+    width: 1000
+    height: 800
+    rooms:
+      - code: LND
+        name: Landing
+        outline: [[0, 0], [300, 0], [300, 800], [0, 800]]
+      - code: DRS
+        name: Dressing room
+        outline: [[300, 0], [600, 0], [600, 500], [300, 500]]
+      - code: BED
+        name: Bedroom
+        outline: [[600, 0], [1000, 0], [1000, 500], [600, 500]]
+      - code: BTH
+        name: Bathroom
+        outline: [[300, 500], [1000, 500], [1000, 800], [300, 800]]

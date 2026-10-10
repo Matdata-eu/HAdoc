@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hadoc.dev/schema/circuits.schema.json",
+  "title": "HAdoc circuits",
+  "description": "Power circuits from a breaker in a distribution board.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "feeds"],
+    "properties": {
+      "id": { "type": "string", "description": "Circuit label as on the board, e.g. 'F12'." },
+      "name": { "type": "string" },
+      "breaker": { "type": ["string", "null"], "description": "Device ID of the breaker." },
+      "rating": { "type": ["string", "null"], "description": "e.g. 'C16'." },
+      "rcd": { "type": ["string", "null"], "description": "Device ID of the upstream RCD." },
+      "phase": { "type": ["string", "null"] },
+      "feeds": { "type": "array", "items": { "type": "string" }, "description": "Points and devices fed by this circuit." }
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hadoc.dev/schema/points.schema.json",
+  "title": "HAdoc points",
+  "description": "Physical things you can touch: switches, sensors, lights, sockets, flush boxes, hidden devices.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "type", "level", "room"],
+    "properties": {
+      "id": { "type": "string", "description": "Point ID following settings.ids.pattern." },
+      "type": { "type": "string", "description": "Type code from settings.types." },
+      "level": { "type": "string" },
+      "room": { "type": "string", "description": "Room code on that level." },
+      "name": { "type": "string", "description": "Plain-language name, e.g. 'Motion sensor above the mirror'." },
+      "pos": {
+        "description": "Position on the floor plan in cm; null while unknown.",
+        "oneOf": [
+          { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 },
+          { "type": "null" }
+        ]
+      },
+      "height": { "type": ["number", "null"], "description": "Mounting height above the floor in cm." },
+      "photo": { "type": "string" },
+      "notes": { "type": "string" },
+      "if_broken": { "type": "string", "description": "What to do when it stops working, in plain words." },
+      "device": { "type": "string", "description": "Device ID when this point is (or hides) a device, e.g. a hidden ESP." }
+    }
+  }
+}

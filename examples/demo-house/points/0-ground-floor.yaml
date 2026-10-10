@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=../../../schema/points.schema.json
+- id: 0-HAL-SW-01
+  type: SW
+  level: "0"
+  room: HAL
+  name: Hall light switch by the front door
+  pos: [40, 760]
+  height: 110
+  if_broken: The hall light can also be switched from the app.
+
+- id: 0-HAL-LGT-01
+  type: LGT
+  level: "0"
+  room: HAL
+  name: Hall ceiling light
+  pos: [150, 250]
+  height: 260
+
+- id: 0-KIT-SKT-01
+  type: SKT
+  level: "0"
+  room: KIT
+  name: Socket above the sink
+  pos: [700, 20]
+  height: 110

@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hadoc.dev/schema/settings.schema.json",
+  "title": "HAdoc settings",
+  "description": "House-wide settings, including the configurable point ID scheme and abbreviations.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ids", "levels", "types"],
+  "properties": {
+    "name": { "type": "string", "description": "Name of the house, shown in the app header." },
+    "language": { "type": "string", "description": "UI language hint, e.g. 'nl' or 'en'." },
+    "ids": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pattern"],
+      "properties": {
+        "pattern": {
+          "type": "string",
+          "description": "Point ID pattern. Placeholders: {level}, {room}, {type}, {nr}.",
+          "default": "{level}-{room}-{type}-{nr}"
+        },
+        "nr_digits": { "type": "integer", "minimum": 1, "maximum": 6, "default": 2 }
+      }
+    },
+    "levels": {
+      "type": "array",
+      "description": "Level codes as used in IDs, e.g. MIN1, 0, 1.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "name"],
+        "properties": {
+          "code": { "type": "string", "pattern": "^[A-Za-z0-9]+$" },
+          "name": { "type": "string" }
+        }
+      }
+    },
+    "types": {
+      "type": "array",
+      "description": "Point type abbreviations, e.g. PIR, SW, LGT.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "name"],
+        "properties": {
+          "code": { "type": "string", "pattern": "^[A-Za-z0-9]+$" },
+          "name": { "type": "string" },
+          "symbol": { "type": "string", "description": "Short text shown on the plan symbol; defaults to the code." },
+          "layer": { "enum": ["power", "data", "automation", "hidden"], "default": "power" }
+        }
+      }
+    }
+  }
+}

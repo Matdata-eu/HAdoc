@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=../../schema/cables.schema.json
+# Cable IDs are the labels on the cables.
+- id: K-0012
+  type: SVV 4x0.8
+  from: 0-HAL-SW-01
+  to: "plc-di01:DI 01.1"
+  route:
+    - level: "0"
+      path: [[40, 760], [20, 760], [20, 20]]
+
+- id: K-0031
+  type: XVB 3G1.5
+  from: "plc-do01:DO 01.1"
+  to: 0-HAL-LGT-01
+
+- id: K-0107
+  type: null
+  from: 1-DRS-PIR-01
+  to: "esp-dressing:GPIO14"
+  route:
+    - level: "1"
+      path: [[450, 30], [520, 30], [520, 80]]

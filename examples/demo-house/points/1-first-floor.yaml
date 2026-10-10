@@ -1,0 +1,35 @@
+# yaml-language-server: $schema=../../../schema/points.schema.json
+- id: 1-DRS-PIR-01
+  type: PIR
+  level: "1"
+  room: DRS
+  name: Motion sensor above the mirror
+  pos: [450, 30]
+  height: 240
+  notes: Wired to a hidden ESP board above the ceiling hatch.
+  if_broken: Check that the ESP board is online in the app. It is powered from the mirror light relay.
+
+- id: 1-DRS-ESP-01
+  type: ESP
+  level: "1"
+  room: DRS
+  name: Hidden ESP board above the ceiling hatch
+  pos: [520, 80]
+  height: null
+  device: esp-dressing
+
+- id: 1-DRS-LGT-01
+  type: LGT
+  level: "1"
+  room: DRS
+  name: Mirror light
+  pos: [450, 60]
+  height: 200
+
+- id: 1-BED-BLD-01
+  type: BLD
+  level: "1"
+  room: BED
+  name: Bedroom blind
+  pos: [990, 250]
+  height: 240

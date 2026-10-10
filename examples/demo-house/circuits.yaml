@@ -1,0 +1,8 @@
+# yaml-language-server: $schema=../../schema/circuits.schema.json
+- id: F3
+  name: Lights first floor
+  breaker: F3
+  rating: C16
+  rcd: RCD1
+  phase: L1
+  feeds: [1-DRS-LGT-01, sonoff-mirror, 1-BED-BLD-01]

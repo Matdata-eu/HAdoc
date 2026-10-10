@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hadoc.dev/schema/site.schema.json",
+  "title": "HAdoc site",
+  "description": "Floors and rooms. Coordinates are in centimetres, origin top-left of the floor.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["floors"],
+  "$defs": {
+    "xy": { "type": "array", "items": { "type": "number" }, "minItems": 2, "maxItems": 2 }
+  },
+  "properties": {
+    "floors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["level", "width", "height", "rooms"],
+        "properties": {
+          "level": { "type": "string", "description": "Level code from settings.levels." },
+          "width": { "type": "number", "exclusiveMinimum": 0 },
+          "height": { "type": "number", "exclusiveMinimum": 0 },
+          "underlay": {
+            "type": "object",
+            "description": "Image exported from the existing plan, drawn under the rooms for tracing.",
+            "additionalProperties": false,
+            "required": ["file"],
+            "properties": {
+              "file": { "type": "string", "description": "Path relative to the data folder, e.g. plans/level-1.png." },
+              "x": { "type": "number", "default": 0 },
+              "y": { "type": "number", "default": 0 },
+              "width": { "type": "number" },
+              "height": { "type": "number" },
+              "opacity": { "type": "number", "minimum": 0, "maximum": 1, "default": 0.5 }
+            }
+          },
+          "rooms": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["code", "name", "outline"],
+              "properties": {
+                "code": { "type": "string", "pattern": "^[A-Za-z0-9]+$" },
+                "name": { "type": "string" },
+                "outline": { "type": "array", "items": { "$ref": "#/$defs/xy" }, "minItems": 3 }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

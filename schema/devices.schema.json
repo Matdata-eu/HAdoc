@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hadoc.dev/schema/devices.schema.json",
+  "title": "HAdoc devices",
+  "description": "Controllers and modules: PLC couplers and I/O modules, ESP boards, relays, power supplies, breakers.",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["id", "kind"],
+    "properties": {
+      "id": { "type": "string" },
+      "kind": { "enum": ["plc", "io-module", "esp", "relay", "psu", "breaker", "rcd", "switch", "other"] },
+      "model": { "type": ["string", "null"] },
+      "label": { "type": "string", "description": "Physical label, e.g. 'DI 01'." },
+      "location": { "type": "string", "description": "Point or enclosure where the device sits." },
+      "firmware": { "type": ["string", "null"] },
+      "hostname": { "type": ["string", "null"] },
+      "mac": { "type": ["string", "null"], "pattern": "^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$" },
+      "powered_by": { "type": ["string", "null"], "description": "Endpoint that feeds this device: a device, port or circuit." },
+      "ports": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name"],
+          "properties": {
+            "name": { "type": "string", "description": "Physical label as printed, e.g. 'DI 01.3', 'GPIO14', 'L'." },
+            "signal": { "type": "string", "description": "e.g. 'DI 24V', 'DO 24V', '230V', 'GPIO'." }
+          }
+        }
+      },
+      "notes": { "type": "string" }
+    }
+  }
+}

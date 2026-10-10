@@ -1,0 +1,20 @@
+{
+  "name": "hadoc",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Home automation documentation: floor plans, cabling, power and automation links in one phone-friendly web app",
+  "license": "MIT",
+  "workspaces": [
+    "server",
+    "web"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "npm run build -w web && npm run build -w server",
+    "check": "npm run check -w server && npm run check -w web",
+    "test": "npm test -w server",
+    "validate": "npm run validate -w server --"
+  }
+}
