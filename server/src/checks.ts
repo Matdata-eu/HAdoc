@@ -129,6 +129,7 @@ export function checkHouse(house: House): Issue[] {
   for (const s of house.signals) {
     mustResolve("signals.yaml", s.id, "port", s.port);
     if (s.port == null) warn("signals.yaml", s.id, "Port is unknown");
+    if (s.point == null && s.source) warn(`import: ${s.source}`, s.id, "Not linked to a point yet");
     if (s.point != null) {
       const t = index.things.get(s.point);
       if (!t || t.kind !== "point") error("signals.yaml", s.id, `point: "${s.point}" is not a point`);

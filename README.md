@@ -49,6 +49,8 @@ Copy [`examples/demo-house`](examples/demo-house) into its own (private) git rep
 | `circuits.yaml` | Breaker circuits and what they feed |
 | `signals.yaml` | Where software sees a port: PLC name and address, MQTT topic, openHAB item |
 
+Every list can also be split over a folder: `devices.yaml` and `devices/*.yaml` are read together, like `points/`.
+
 Cable and circuit ends are written as a point or device ID, or as `device:port` (for example `plc-di01:DI 01.1`). Plan images go in `plans/`, photos in `photos/`.
 
 ### Point IDs
@@ -67,6 +69,34 @@ types:
 ```
 
 Room codes are defined per floor in `site.yaml`.
+
+### Importing the WAGO PLC configuration
+
+HAdoc reads the CODESYS 2.3 (WAGO-I/O-PRO) PLC configuration export directly, so the PLC side never has to be typed in:
+
+1. In CODESYS, open the PLC configuration and choose **Project > Export**. Save it in your data folder, e.g. `imports/plc-configuration.exp`.
+2. Point `settings.yaml` at it:
+
+   ```yaml
+   imports:
+     wago:
+       config: imports/plc-configuration.exp
+       controller: plc     # device ID of the PLC, optional
+       id_prefix: plc-     # optional, the default
+   ```
+
+Each I/O module becomes a device named after its comment (`DI 01` becomes `plc-di01`), with one port per channel (`DI 01.1` to `DI 01.4`). Each channel with a symbolic name becomes a signal `PLC-<name>` with its IEC address; a real channel comment becomes the signal's name. Channels without a name show as spare ports.
+
+The export is read on every load, so re-exporting after a change in CODESYS updates HAdoc. To add something to an imported record, write an entry with the same ID; its fields are laid over the import:
+
+```yaml
+# signals.yaml
+- id: PLC-SB_0_1L
+  name: Hall switch
+  point: 0-HAL-SW-01
+```
+
+Imported signals that are not linked to a point yet are listed under "To check".
 
 ### Validate
 
@@ -90,7 +120,7 @@ The server reloads the data when files in the data folder change.
 ## Roadmap
 
 1. **MVP**: plan underlay, rooms, points, point pages, trace, checks *(this scaffold)*. Next: placing and editing points in the app, with each change committed to git.
-2. **WAGO import** from CODESYS 2.3 `PLC CONFIGURATION.EXP`, seeding points from channel names and comments.
+2. **WAGO import** from the CODESYS 2.3 PLC configuration export *(done)*.
 3. **Cables and circuits**: drawing routes, terminals and cores, breaker colouring.
 4. **Importers**: openHAB, UniFi (status and IP), ESPHome, Tasmota, MQTT, plus the "undocumented" report and the rules behind each item.
 5. **PLC logic viewer** from POU exports, wall and enclosure views, QR labels.

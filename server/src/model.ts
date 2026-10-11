@@ -9,6 +9,9 @@ export interface Settings {
   ids: { pattern: string; nr_digits?: number };
   levels: { code: string; name: string }[];
   types: { code: string; name: string; symbol?: string; layer?: Layer }[];
+  imports?: {
+    wago?: { config: string; controller?: string; id_prefix?: string };
+  };
 }
 
 export type Layer = "power" | "data" | "automation" | "hidden";
@@ -73,6 +76,8 @@ export interface Device {
   powered_by?: string | null;
   ports?: Port[];
   notes?: string;
+  /** Set by the loader on records that come from an import, e.g. "wago". */
+  source?: string;
 }
 
 export interface Cable {
@@ -106,6 +111,8 @@ export interface Signal {
   openhab?: { thing?: string | null; item?: string | null };
   logic?: "plc" | "openhab" | "both" | "none" | null;
   notes?: string;
+  /** Set by the loader on records that come from an import, e.g. "wago". */
+  source?: string;
 }
 
 export interface Issue {

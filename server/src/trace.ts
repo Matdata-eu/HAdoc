@@ -16,8 +16,19 @@ export interface CableEnd {
   there: ThingRef | null;
 }
 
+export interface PortUse {
+  name: string;
+  signal?: string;
+  /** Signals wired to this port, e.g. the PLC variable reading it. */
+  signals: Signal[];
+  /** Cables landing on this port, with their other end. */
+  cables: CableEnd[];
+}
+
 export interface Trace {
   subject: ThingRef;
+  /** For a device: every port and what uses it. */
+  ports: PortUse[];
   location: ThingRef | null;
   /** Devices that sit at this point, e.g. a hidden ESP. */
   contains: ThingRef[];
@@ -103,8 +114,22 @@ export function traceThing(house: House, index: HouseIndex, id: string): Trace |
 
   const signals = house.signals.filter((s) => (s.point != null && here.has(s.point)) || touches(s.port));
 
+  const ports: PortUse[] =
+    subject.kind === "device"
+      ? (subject.item.ports ?? []).map((p) => {
+          const ref = `${id}:${p.name}`;
+          return {
+            name: p.name,
+            signal: p.signal,
+            signals: house.signals.filter((s) => s.port === ref),
+            cables: cables.filter((c) => c.here === ref),
+          };
+        })
+      : [];
+
   return {
     subject: { kind: subject.kind, id, label: label(subject) },
+    ports,
     location,
     contains,
     poweredBy,

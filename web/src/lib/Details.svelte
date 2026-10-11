@@ -21,6 +21,8 @@
   );
   const levelName = $derived(point ? house.settings.levels.find((l) => l.code === point.level)?.name : undefined);
 
+  const pointName = (id: string) => house.points.find((p) => p.id === id)?.name ?? id;
+
   function canOpen(ref: ThingRef): boolean {
     return (ref.kind === "point" || ref.kind === "device" || ref.kind === "enclosure");
   }
@@ -77,6 +79,34 @@
       {#if device.notes}<p>{device.notes}</p>{/if}
     {/if}
 
+    {#if trace.ports.length}
+      <section>
+        <h3>Ports</h3>
+        <table class="ports">
+          <tbody>
+            {#each trace.ports as port (port.name)}
+              <tr>
+                <td class="mono">{port.name}</td>
+                <td>
+                  {#each port.signals as s (s.id)}
+                    <div>
+                      {#if s.plc?.name}<span class="mono">{s.plc.name}</span>{/if}
+                      {#if s.name}{s.name}{/if}
+                      {#if s.point}→ <button class="link" onclick={() => onselect(s.point!)}>{pointName(s.point)}</button>{/if}
+                    </div>
+                  {/each}
+                  {#each port.cables as end (end.cable.id)}
+                    <div>{end.cable.id} to {@render link(end.there)}</div>
+                  {/each}
+                  {#if !port.signals.length && !port.cables.length}<span class="spare">spare</span>{/if}
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </section>
+    {/if}
+
     {#if trace.location}
       <section>
         <h3>Located in</h3>
@@ -125,7 +155,7 @@
       {/if}
     </section>
 
-    {#if trace.signals.length}
+    {#if trace.signals.length && !trace.ports.length}
       <section>
         <h3>Automation</h3>
         <ul>
@@ -134,7 +164,7 @@
               <strong>{s.name ?? s.id}</strong>
               {#if s.logic}<span class="tag">logic in {s.logic}</span>{/if}
               <dl>
-                {#if s.plc?.name}<dt>PLC</dt><dd>{s.plc.name}{#if s.plc.address} at {s.plc.address}{/if}</dd>{/if}
+                {#if s.plc?.name}<dt>PLC</dt><dd>{[s.plc.name, s.plc.address].filter(Boolean).join(" at ")}</dd>{/if}
                 {#if s.mqtt}<dt>MQTT</dt><dd class="mono">{s.mqtt}</dd>{/if}
                 {#if s.openhab?.item}<dt>openHAB</dt><dd class="mono">{s.openhab.item}</dd>{/if}
               </dl>
@@ -247,6 +277,25 @@
   }
   .callout p {
     margin: 0;
+  }
+  .ports {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .ports td {
+    border-top: 1px solid var(--border);
+    padding: 4px 6px 4px 0;
+    vertical-align: top;
+  }
+  .ports td:first-child {
+    white-space: nowrap;
+  }
+  .ports .mono {
+    margin-right: 6px;
+  }
+  .spare {
+    color: var(--muted);
   }
   .tag {
     font-size: 12px;

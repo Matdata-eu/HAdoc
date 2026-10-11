@@ -20,3 +20,9 @@ types:
   - { code: BLD, name: Blind motor, layer: automation }
   - { code: ESP, name: Hidden ESP board, layer: hidden }
   - { code: JB, name: Junction box, layer: hidden }
+
+# Exports from other systems, read every time the data loads.
+imports:
+  wago:
+    config: imports/plc-configuration.exp
+    controller: plc
