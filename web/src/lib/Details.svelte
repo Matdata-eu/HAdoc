@@ -1,11 +1,12 @@
 <script lang="ts">
-  import type { EditActions, HouseData, ThingRef, Trace } from "./api";
+  import { api, type EditActions, type HouseData, type LiveDevice, type LiveSnapshot, type Signal, type ThingRef, type Trace } from "./api";
   import { coreBackground } from "./colours";
   import LinkSignal from "./LinkSignal.svelte";
 
   interface Props {
     house: HouseData;
     trace: Trace | null;
+    live?: LiveSnapshot | null;
     loading: boolean;
     /** Edit mode; the actions are only offered then. */
     editing?: boolean;
@@ -16,7 +17,7 @@
     onclose: () => void;
   }
 
-  let { house, trace, loading, editing = false, level = null, actions, onselect, onclose }: Props = $props();
+  let { house, trace, live = null, loading, editing = false, level = null, actions, onselect, onclose }: Props = $props();
 
   const floorName = $derived(house.settings.levels.find((l) => l.code === level)?.name ?? level);
 
@@ -37,6 +38,17 @@
       .filter(([id, c]) => c === circuit && house.points.some((p) => p.id === id))
       .map(([id]) => id);
 
+  // Rule scripts are fetched when someone opens them.
+  let scripts = $state<Record<string, string>>({});
+  async function loadScript(uid: string) {
+    if (scripts[uid] !== undefined) return;
+    try {
+      scripts[uid] = (await api.rule(uid)).script ?? "(no script; the rule is built in the UI)";
+    } catch (err) {
+      scripts[uid] = (err as Error).message;
+    }
+  }
+
   const pointName = (id: string) => house.points.find((p) => p.id === id)?.name ?? id;
 
   function canOpen(ref: ThingRef): boolean {
@@ -44,13 +56,43 @@
   }
 </script>
 
+{#snippet status(d: LiveDevice | undefined)}
+  {#if d && d.online !== undefined}
+    <span class="status" class:online={d.online} title="According to {d.from.join(', ')}">
+      <span class="led"></span>{d.online ? "online" : "offline"}{#if d.ip}<span class="mono">{d.ip}</span>{/if}
+    </span>
+  {/if}
+{/snippet}
+
+{#snippet item(s: Signal)}
+  {@const name = s.openhab?.item}
+  {@const it = name ? live?.items[name] : undefined}
+  {#if name}
+    <dt>openHAB</dt>
+    <dd>
+      <span class="mono">{name}</span>
+      {#if it?.state !== undefined}<span class="tag">{it.state}</span>{/if}
+      {#if it?.rules.length}
+        {#each it.rules as r (r.uid)}
+          <details class="rule" ontoggle={(e) => (e.currentTarget as HTMLDetailsElement).open && loadScript(r.uid)}>
+            <summary>{r.name} <span class="muted">{r.how === "script" ? "uses it" : `on ${r.how}`}</span></summary>
+            <pre>{scripts[r.uid] ?? "Loading…"}</pre>
+          </details>
+        {/each}
+      {:else if it}
+        <div class="muted">No rules use it</div>
+      {/if}
+    </dd>
+  {/if}
+{/snippet}
+
 {#snippet link(ref: ThingRef | null)}
   {#if ref === null}
     <span class="unknown">not documented</span>
   {:else if canOpen(ref)}
     <button class="link" onclick={() => onselect(ref.id)}>{ref.label}</button>{#if ref.port}<span class="port"
         >{ref.port}</span
-      >{/if}
+      >{/if}{#if ref.kind === "device"}{@render status(live?.devices[ref.id])}{/if}
   {:else}
     <span>{ref.label}</span>
   {/if}
@@ -92,12 +134,14 @@
     {/if}
 
     {#if device}
+      {@const ld = live?.devices[device.id]}
+      {#if ld}<p>{@render status(ld)}</p>{/if}
       <dl>
         <dt>Kind</dt><dd>{device.kind}</dd>
         {#if device.model}<dt>Model</dt><dd>{device.model}</dd>{/if}
-        {#if device.firmware}<dt>Firmware</dt><dd>{device.firmware}</dd>{/if}
+        {#if ld?.firmware ?? device.firmware}<dt>Firmware</dt><dd>{ld?.firmware ?? device.firmware}</dd>{/if}
         {#if device.hostname}<dt>Hostname</dt><dd>{device.hostname}</dd>{/if}
-        {#if device.mac}<dt>MAC</dt><dd>{device.mac}</dd>{/if}
+        {#if device.mac ?? ld?.mac}<dt>MAC</dt><dd>{device.mac ?? ld?.mac}</dd>{/if}
       </dl>
       {#if device.notes}<p>{device.notes}</p>{/if}
     {/if}
@@ -128,6 +172,9 @@
                     <div>
                       {#if s.plc?.name}<span class="mono">{s.plc.name}</span>{/if}
                       {#if s.name}{s.name}{/if}
+                      {#if s.openhab?.item}<span class="mono">{s.openhab.item}</span>{#if live?.items[s.openhab.item]?.state !== undefined}<span
+                            class="tag">{live.items[s.openhab.item]!.state}</span
+                          >{/if}{/if}
                       {#if s.point}→ <button class="link" onclick={() => onselect(s.point!)}>{pointName(s.point)}</button>
                         {#if editing && actions}<button class="unlink" title="Unlink from this point" onclick={() => actions.link(s.id, null)}>✕</button>{/if}
                       {/if}
@@ -139,7 +186,7 @@
                   {#each port.cables as end (end.cable.id)}
                     <div>{end.cable.id} to {@render link(end.there)}</div>
                   {/each}
-                  {#if !port.signals.length && !port.cables.length}<span class="spare">spare</span>{/if}
+                  {#if !port.signals.length && !port.cables.length}<span class="spare">{port.use ? `${port.use} (not documented)` : "spare"}</span>{/if}
                 </td>
               </tr>
             {/each}
@@ -229,7 +276,7 @@
               <dl>
                 {#if s.plc?.name}<dt>PLC</dt><dd>{[s.plc.name, s.plc.address].filter(Boolean).join(" at ")}</dd>{/if}
                 {#if s.mqtt}<dt>MQTT</dt><dd class="mono">{s.mqtt}</dd>{/if}
-                {#if s.openhab?.item}<dt>openHAB</dt><dd class="mono">{s.openhab.item}</dd>{/if}
+                {@render item(s)}
               </dl>
             </li>
           {/each}
@@ -392,6 +439,42 @@
     border: 1px solid var(--border);
     margin-right: 6px;
     vertical-align: -1px;
+  }
+  .status {
+    font-size: 13px;
+    color: var(--muted);
+    margin-left: 6px;
+    white-space: nowrap;
+  }
+  p > .status:first-child {
+    margin-left: 0;
+  }
+  .status .mono {
+    margin-left: 6px;
+  }
+  .led {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--error);
+    margin-right: 4px;
+  }
+  .status.online .led {
+    background: #16a34a;
+  }
+  .rule summary {
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .rule pre {
+    font-size: 12px;
+    background: var(--surface);
+    border-radius: 6px;
+    padding: 6px 8px;
+    overflow-x: auto;
+    margin: 4px 0;
+    max-height: 300px;
   }
   .tag {
     font-size: 12px;

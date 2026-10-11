@@ -14,5 +14,8 @@ services:
       HADOC_GIT_COMMIT: "1"
       # Set to "1" to turn editing off.
       HADOC_READONLY: "0"
+      # Secrets for the live connections in settings.yaml (integrations).
+      HADOC_OPENHAB_TOKEN: ${HADOC_OPENHAB_TOKEN:-}
+      HADOC_UNIFI_KEY: ${HADOC_UNIFI_KEY:-}
     # The app writes edits as the "node" user (uid 1000); ./house must be writable for it.
     user: "1000:1000"

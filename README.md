@@ -4,7 +4,7 @@
 
 HAdoc keeps floor plans, cabling, power circuits, controller I/O (PLC channels, ESP pins) and the link to your home automation software in one place, as plain YAML files you keep in git.
 
-> Status: early. The viewer, data format, validation, trace, WAGO import and editing in the app work; the other importers and the AREI diagrams are on the [roadmap](#roadmap).
+> Status: early. The viewer, data format, validation, trace, editing in the app, the WAGO and ESPHome imports and the live connections to openHAB, UniFi, Tasmota and MQTT work; the PLC logic viewer and the AREI diagrams are on the [roadmap](#roadmap).
 
 ## What you get
 
@@ -13,6 +13,9 @@ HAdoc keeps floor plans, cabling, power circuits, controller I/O (PLC channels, 
 - **Cores and terminals**: list the cores of a cable and the terminal each one lands on; the cable then shows up on every port it touches.
 - **Edit mode**: drag points, place new ones, draw cable routes and link PLC channels to points. Edits are written back into your YAML files (comments and layout kept) and can be committed to git.
 - **Tap anything** to see its trace: the circuit and breaker that feed it, the cables and terminals it lands on, the device or PLC channel behind it, and the MQTT topic or openHAB item that reads it.
+- **Live status** from UniFi, Tasmota and MQTT: online or offline and the IP address of every documented device.
+- **openHAB**: the current state of each item and the rules that use it (by trigger, group trigger or in the script), with the script one tap away.
+- **"Not documented yet"** report: openHAB items linked to a channel that no signal uses, unknown clients on your IoT subnet, Tasmota and ESPHome nodes on MQTT, and ESPHome pins without a signal.
 - **"If it stops working"** notes in plain language, for everyone in the house.
 - **Checks** that flag broken references, IDs that don't follow your scheme, and what is still undocumented.
 - **Search** by room, ID, device, PLC name or openHAB item.
@@ -100,6 +103,36 @@ The export is read on every load, so re-exporting after a change in CODESYS upda
 
 Imported signals that are not linked to a point yet are listed under "To check".
 
+### Importing ESPHome configs
+
+Point `imports.esphome.dir` at the ESPHome config folder (mount it into the container, e.g. `-v /opt/esphome/config:/esphome:ro`). Each node becomes a device with its node name as ID, and every pin the config uses becomes a port with what it is used for. Add the location, MAC and power in `devices.yaml` under the same ID.
+
+```yaml
+imports:
+  esphome:
+    dir: /esphome
+```
+
+### Live connections
+
+```yaml
+integrations:
+  poll_seconds: 60
+  openhab: { url: "http://192.168.2.31:8080" }
+  unifi: { url: "https://unifi.example.com", subnets: [192.168.20.0/24] }
+  tasmota: {}
+  mqtt: { url: "mqtt://192.168.2.9:1883" }
+```
+
+| Source | What it adds | Secret (environment variable) |
+| --- | --- | --- |
+| openHAB | Item state, the rules that use an item, items no signal uses | `HADOC_OPENHAB_TOKEN`, an API token (optional when anonymous access is allowed) |
+| UniFi | Online and IP by MAC address (or by name), unknown clients | `HADOC_UNIFI_KEY`, an Integration API key from Settings > Control Plane > Integrations |
+| Tasmota | Online, IP, MAC and firmware of every device with `firmware: Tasmota` and a `hostname` | `HADOC_TASMOTA_USER`, `HADOC_TASMOTA_PASSWORD` when a web password is set |
+| MQTT | Tasmota (LWT, discovery) and ESPHome (`<node>/status`) nodes that announce themselves | `HADOC_MQTT_USER`, `HADOC_MQTT_PASSWORD` |
+
+Each source can name another variable with `token_env`, `key_env`, `user_env`/`password_env` or `username_env`/`password_env`. For UniFi OS consoles set `api_path: /proxy/network/integration/v1`. A source that fails shows its error in `GET /api/live`; the plan keeps working without it.
+
 ### Validate
 
 ```bash
@@ -131,8 +164,10 @@ In Docker the app runs as uid 1000, so the data folder must be writable for that
 | --- | --- |
 | `GET /api/house` | All data plus error and warning counts |
 | `GET /api/trace/:id` | The trace for a point, device or enclosure |
-| `GET /api/issues` | Every error and warning |
+| `GET /api/issues` | Every error and warning, and what is not documented yet (`info`) |
 | `GET /api/health` | Liveness and when the data was last loaded |
+| `GET /api/live` | Status per source, live data per device, state and rules per openHAB item |
+| `GET /api/live/rules/:uid` | The script of an openHAB rule |
 | `PATCH /api/points/:id` | Move a point: `{ "pos": [x, y] }` or `{ "pos": null }` |
 | `POST /api/points` | New point: `{ type, level, room, name?, pos?, signal? }`; `signal` links that signal to it |
 | `PUT /api/cables/:id/route` | Route on one floor: `{ level, path: [[x, y], …] }`, or `path: null` to remove it |
@@ -145,7 +180,7 @@ The server reloads the data when files in the data folder change.
 1. **MVP**: plan underlay, rooms, points, point pages, trace, checks *(done)*.
 2. **WAGO import** from the CODESYS 2.3 PLC configuration export *(done)*.
 3. **Cables and circuits**: drawing routes, terminals and cores, breaker colouring, editing in the app with git commits *(done)*.
-4. **Importers**: openHAB, UniFi (status and IP), ESPHome, Tasmota, MQTT, plus the "undocumented" report and the rules behind each item.
+4. **Importers**: openHAB, UniFi (status and IP), ESPHome, Tasmota, MQTT, plus the "undocumented" report and the rules behind each item *(done)*.
 5. **PLC logic viewer** from POU exports, wall and enclosure views, QR labels.
 6. **AREI** single-line diagram (eendraadschema) and situation sketch (situatieschets).
 7. Importers for other systems (Home Assistant, KNX, Loxone, Shelly).

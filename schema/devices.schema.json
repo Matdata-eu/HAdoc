@@ -26,7 +26,8 @@
           "required": ["name"],
           "properties": {
             "name": { "type": "string", "description": "Physical label as printed, e.g. 'DI 01.3', 'GPIO14', 'L'." },
-            "signal": { "type": "string", "description": "e.g. 'DI 24V', 'DO 24V', '230V', 'GPIO'." }
+            "signal": { "type": "string", "description": "e.g. 'DI 24V', 'DO 24V', '230V', 'GPIO'." },
+            "use": { "type": "string", "description": "What the firmware config uses it for, e.g. 'binary_sensor: Motion'. Set by imports." }
           }
         }
       },

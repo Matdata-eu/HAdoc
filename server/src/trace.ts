@@ -19,6 +19,7 @@ export interface CableEnd {
 export interface PortUse {
   name: string;
   signal?: string;
+  use?: string;
   /** Signals wired to this port, e.g. the PLC variable reading it. */
   signals: Signal[];
   /** Cables landing on this port, with their other end. */
@@ -129,6 +130,7 @@ export function traceThing(house: House, index: HouseIndex, id: string): Trace |
           return {
             name: p.name,
             signal: p.signal,
+            use: p.use,
             signals: house.signals.filter((s) => s.port === ref),
             cables: cables.filter((c) => c.here === ref || c.cable.cores?.some((k) => k.from === ref || k.to === ref)),
           };

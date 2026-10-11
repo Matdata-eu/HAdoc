@@ -4,6 +4,7 @@ import Fastify from "fastify";
 import fastifyStatic from "@fastify/static";
 import { circuitOf } from "./circuits.js";
 import { EditError, editor } from "./edit.js";
+import { liveService, undocumentedPins } from "./live/index.js";
 import { indexHouse, type HouseIndex } from "./index-house.js";
 import { loadHouse } from "./load.js";
 import type { House } from "./model.js";
@@ -20,6 +21,8 @@ export interface AppOptions {
   readOnly?: boolean;
   /** Commit every edit in the data folder's git repository. */
   gitCommit?: boolean;
+  /** Replaces global fetch for the live integrations, for tests. */
+  fetch?: typeof fetch;
 }
 
 const xy = { type: "array", items: { type: "number" }, minItems: 2, maxItems: 2 } as const;
@@ -32,10 +35,16 @@ export async function buildApp(options: AppOptions) {
   let index: HouseIndex = indexHouse(house);
   let loadedAt = new Date();
 
+  const live = liveService(() => house, { fetch: options.fetch, log: (msg) => app.log.warn(msg) });
+  live.configure(house.settings.integrations);
+  app.addHook("onClose", async () => live.stop());
+  const allIssues = () => [...house.issues, ...undocumentedPins(house), ...live.report()];
+
   const reload = async () => {
     house = await loadHouse(dataDir);
     index = indexHouse(house);
     loadedAt = new Date();
+    live.configure(house.settings.integrations);
     app.log.info({ issues: house.issues.length }, "data reloaded");
   };
 
@@ -51,7 +60,8 @@ export async function buildApp(options: AppOptions) {
   app.get("/api/health", async () => ({ ok: true, loadedAt: loadedAt.toISOString() }));
 
   app.get("/api/house", async () => {
-    const { issues, ...rest } = house;
+    const { issues: _, ...rest } = house;
+    const issues = allIssues();
     return {
       ...rest,
       circuitOf: circuitOf(house, index),
@@ -59,11 +69,20 @@ export async function buildApp(options: AppOptions) {
       issueCount: {
         errors: issues.filter((i) => i.severity === "error").length,
         warnings: issues.filter((i) => i.severity === "warning").length,
+        info: issues.filter((i) => i.severity === "info").length,
       },
     };
   });
 
-  app.get("/api/issues", async () => house.issues);
+  app.get("/api/issues", async () => allIssues());
+
+  app.get("/api/live", async () => live.snapshot());
+
+  app.get<{ Params: { uid: string } }>("/api/live/rules/:uid", async (req, reply) => {
+    const rule = live.rule(req.params.uid);
+    if (!rule) return reply.code(404).send({ error: `No rule "${req.params.uid}"` });
+    return rule;
+  });
 
   app.get<{ Params: { id: string } }>("/api/trace/:id", async (req, reply) => {
     const trace = traceThing(house, index, req.params.id);

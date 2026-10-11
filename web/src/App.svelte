@@ -1,12 +1,13 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { api, type EditActions, type HouseData, type Issue, type Trace, type XY } from "./lib/api";
+  import { api, type EditActions, type HouseData, type Issue, type LiveSnapshot, type Trace, type XY } from "./lib/api";
   import { circuitColours } from "./lib/colours";
   import Details from "./lib/Details.svelte";
   import FloorPlan from "./lib/FloorPlan.svelte";
   import Issues from "./lib/Issues.svelte";
 
   let house = $state<HouseData | null>(null);
+  let live = $state<LiveSnapshot | null>(null);
   let error = $state<string | null>(null);
   let level = $state<string | null>(null);
   let selected = $state<string | null>(null);
@@ -97,9 +98,10 @@
     }
   }
 
-  /** Signals, cables and circuits have no page of their own; open the thing they belong to. */
+  /** Signals, cables, circuits and ports have no page of their own; open the thing they belong to. */
   function selectable(id: string): string {
     if (!house) return id;
+    if (id.includes(":")) return id.split(":")[0]!;
     const signal = house.signals.find((s) => s.id === id);
     if (signal) return signal.point ?? signal.port?.split(":")[0] ?? id;
     const cable = house.cables.find((c) => c.id === id);
@@ -192,6 +194,20 @@
     tool = null;
   }
 
+  function canOpen(id: string): boolean {
+    if (!house) return false;
+    const target = selectable(id);
+    return [house.points, house.devices, house.enclosures].some((list) => list.some((t) => t.id === target));
+  }
+
+  async function refreshLive() {
+    try {
+      live = await api.live();
+    } catch {
+      // The plan works without live data.
+    }
+  }
+
   async function openIssues() {
     issues = await api.issues();
     selected = null;
@@ -199,10 +215,17 @@
     showIssues = true;
   }
 
-  onMount(async () => {
-    await load();
-    const fromHash = decodeURIComponent(location.hash.slice(1));
-    if (fromHash) void select(fromHash);
+  onMount(() => {
+    void (async () => {
+      await load();
+      const fromHash = decodeURIComponent(location.hash.slice(1));
+      if (fromHash) void select(fromHash);
+    })();
+    void refreshLive();
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") void refreshLive();
+    }, 30000);
+    return () => clearInterval(timer);
   });
 </script>
 
@@ -312,6 +335,7 @@
       <Details
         {house}
         {trace}
+        {live}
         loading={loadingTrace}
         {editing}
         level={floor?.level ?? null}
@@ -320,7 +344,7 @@
         onclose={() => select(null)}
       />
     {:else if showIssues}
-      <Issues {issues} onselect={select} onclose={() => (showIssues = false)} />
+      <Issues {issues} {canOpen} onselect={select} onclose={() => (showIssues = false)} />
     {/if}
   </main>
 </div>
