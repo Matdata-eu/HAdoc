@@ -9,3 +9,10 @@ services:
       - "8090:8080"
     volumes:
       - ./house:/data
+    environment:
+      # Commit every edit made in the app to the git repository in ./house.
+      HADOC_GIT_COMMIT: "1"
+      # Set to "1" to turn editing off.
+      HADOC_READONLY: "0"
+    # The app writes edits as the "node" user (uid 1000); ./house must be writable for it.
+    user: "1000:1000"

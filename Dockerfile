@@ -12,6 +12,8 @@ COPY web web
 RUN npm run build && npm prune --omit=dev
 
 FROM node:22-alpine
+# git lets HADOC_GIT_COMMIT=1 commit each edit in the data folder.
+RUN apk add --no-cache git
 ENV NODE_ENV=production \
     HADOC_DATA=/data \
     PORT=8080
@@ -22,7 +24,7 @@ COPY --from=build /app/schema schema
 COPY --from=build /app/server/package.json server/
 COPY --from=build /app/server/dist server/dist
 COPY --from=build /app/web/dist web/dist
-COPY examples/demo-house /data
+COPY --chown=node:node examples/demo-house /data
 USER node
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s CMD wget -qO- http://127.0.0.1:8080/api/health || exit 1

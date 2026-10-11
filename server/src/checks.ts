@@ -112,6 +112,10 @@ export function checkHouse(house: House): Issue[] {
     mustResolve("cables.yaml", c.id, "to", c.to);
     if (c.from == null || c.to == null) warn("cables.yaml", c.id, "One end of the cable is not documented");
     if (c.type == null) warn("cables.yaml", c.id, "Cable type is unknown");
+    for (const [i, core] of (c.cores ?? []).entries()) {
+      mustResolve("cables.yaml", c.id, `cores[${i}].from`, core.from);
+      mustResolve("cables.yaml", c.id, `cores[${i}].to`, core.to);
+    }
     for (const segment of c.route ?? []) {
       if (!levels.has(segment.level)) error("cables.yaml", c.id, `Route level "${segment.level}" is not in settings.levels`);
     }

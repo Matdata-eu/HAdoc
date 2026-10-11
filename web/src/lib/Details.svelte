@@ -1,15 +1,24 @@
 <script lang="ts">
-  import type { HouseData, ThingRef, Trace } from "./api";
+  import type { EditActions, HouseData, ThingRef, Trace } from "./api";
+  import { coreBackground } from "./colours";
+  import LinkSignal from "./LinkSignal.svelte";
 
   interface Props {
     house: HouseData;
     trace: Trace | null;
     loading: boolean;
+    /** Edit mode; the actions are only offered then. */
+    editing?: boolean;
+    /** Floor shown on the plan. */
+    level?: string | null;
+    actions?: EditActions;
     onselect: (id: string) => void;
     onclose: () => void;
   }
 
-  let { house, trace, loading, onselect, onclose }: Props = $props();
+  let { house, trace, loading, editing = false, level = null, actions, onselect, onclose }: Props = $props();
+
+  const floorName = $derived(house.settings.levels.find((l) => l.code === level)?.name ?? level);
 
   const point = $derived(trace ? house.points.find((p) => p.id === trace.subject.id) : undefined);
   const device = $derived(trace ? house.devices.find((d) => d.id === trace.subject.id) : undefined);
@@ -20,6 +29,13 @@
       : undefined,
   );
   const levelName = $derived(point ? house.settings.levels.find((l) => l.code === point.level)?.name : undefined);
+
+  // A breaker shows what its circuits feed.
+  const breakerOf = $derived(trace ? house.circuits.filter((c) => c.breaker === trace.subject.id) : []);
+  const fedBy = (circuit: string) =>
+    Object.entries(house.circuitOf)
+      .filter(([id, c]) => c === circuit && house.points.some((p) => p.id === id))
+      .map(([id]) => id);
 
   const pointName = (id: string) => house.points.find((p) => p.id === id)?.name ?? id;
 
@@ -66,6 +82,13 @@
         </section>
       {/if}
       {#if point.notes}<p>{point.notes}</p>{/if}
+      {#if !point.pos}<p class="unknown">Not on the plan yet</p>{/if}
+      {#if editing && actions}
+        <p>
+          <button class="small" onclick={() => actions.place(point.id)}>{point.pos ? "Place again" : "Place on the plan"}</button>
+          {#if point.pos}<span class="hint">or drag it on the plan</span>{/if}
+        </p>
+      {/if}
     {/if}
 
     {#if device}
@@ -78,6 +101,19 @@
       </dl>
       {#if device.notes}<p>{device.notes}</p>{/if}
     {/if}
+
+    {#each breakerOf as c (c.id)}
+      <section>
+        <h3>Circuit {c.id}{c.name ? `: ${c.name}` : ""}</h3>
+        <p class="meta">{[c.rating, c.rcd && `RCD ${c.rcd}`, c.phase].filter(Boolean).join(" · ")}</p>
+        <ul>
+          {#each fedBy(c.id) as id (id)}<li><button class="link" onclick={() => onselect(id)}>{pointName(id)}</button></li>{/each}
+          {#each c.feeds.filter((f) => !house.points.some((p) => p.id === f)) as id (id)}
+            <li><button class="link" onclick={() => onselect(id.split(":")[0]!)}>{id}</button></li>
+          {/each}
+        </ul>
+      </section>
+    {/each}
 
     {#if trace.ports.length}
       <section>
@@ -92,8 +128,13 @@
                     <div>
                       {#if s.plc?.name}<span class="mono">{s.plc.name}</span>{/if}
                       {#if s.name}{s.name}{/if}
-                      {#if s.point}→ <button class="link" onclick={() => onselect(s.point!)}>{pointName(s.point)}</button>{/if}
+                      {#if s.point}→ <button class="link" onclick={() => onselect(s.point!)}>{pointName(s.point)}</button>
+                        {#if editing && actions}<button class="unlink" title="Unlink from this point" onclick={() => actions.link(s.id, null)}>✕</button>{/if}
+                      {/if}
                     </div>
+                    {#if editing && actions && !s.point}
+                      <LinkSignal {house} signal={s} {level} onlink={(p) => actions.link(s.id, p)} oncreate={actions.create} />
+                    {/if}
                   {/each}
                   {#each port.cables as end (end.cable.id)}
                     <div>{end.cable.id} to {@render link(end.there)}</div>
@@ -147,8 +188,30 @@
           {#each trace.cables as end (end.cable.id)}
             <li>
               <strong>{end.cable.id}</strong>
-              <span class="muted">{end.cable.type ?? "type unknown"}</span>
+              <span class="muted">{[end.cable.type ?? "type unknown", end.cable.length != null && `${end.cable.length} m`].filter(Boolean).join(" · ")}</span>
               <br />to {@render link(end.there)}
+              {#if end.cable.cores?.length}
+                <table class="cores">
+                  <tbody>
+                    {#each end.cable.cores as core, i (i)}
+                      <tr>
+                        <td><span class="swatch" style:background={coreBackground(core.colour) ?? "transparent"}></span>{core.colour}</td>
+                        {#if core.from == null && core.to == null}
+                          <td class="spare" colspan="2">spare</td>
+                        {:else}
+                          <td class="mono">{core.from ?? "?"}</td>
+                          <td class="mono">{core.to ?? "?"}</td>
+                        {/if}
+                      </tr>
+                    {/each}
+                  </tbody>
+                </table>
+              {/if}
+              {#if editing && actions && level}
+                <button class="small" onclick={() => actions.route(end.cable.id)}>
+                  {end.cable.route?.some((r) => r.level === level) ? "Redraw" : "Draw"} route on {floorName}
+                </button>
+              {/if}
             </li>
           {/each}
         </ul>
@@ -296,6 +359,39 @@
   }
   .spare {
     color: var(--muted);
+  }
+  .hint {
+    color: var(--muted);
+    font-size: 13px;
+    margin-left: 6px;
+  }
+  .unlink {
+    border: 0;
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+    padding: 0 4px;
+  }
+  .cores {
+    border-collapse: collapse;
+    font-size: 13px;
+    margin: 4px 0;
+  }
+  .cores td {
+    padding: 1px 8px 1px 0;
+    white-space: nowrap;
+  }
+  .cores .mono {
+    font-size: 12px;
+  }
+  .swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    margin-right: 6px;
+    vertical-align: -1px;
   }
   .tag {
     font-size: 12px;

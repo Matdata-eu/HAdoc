@@ -18,7 +18,7 @@ const OBJECTS = ["settings", "site"] as const;
  */
 const LISTS = ["points", "enclosures", "devices", "cables", "circuits", "signals"] as const;
 
-type ListKey = (typeof LISTS)[number];
+export type ListKey = (typeof LISTS)[number];
 
 let validators: Map<string, ValidateFunction> | undefined;
 
@@ -52,7 +52,7 @@ function validate(validator: ValidateFunction, data: unknown, label: string, iss
 }
 
 /** The files a list is read from, relative to the data folder, in load order. */
-async function listFiles(dataDir: string, name: ListKey): Promise<string[]> {
+export async function listFiles(dataDir: string, name: ListKey): Promise<string[]> {
   const files: string[] = [];
   if (existsSync(path.join(dataDir, `${name}.yaml`))) files.push(`${name}.yaml`);
   const dir = path.join(dataDir, name);
