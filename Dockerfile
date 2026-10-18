@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:22-alpine AS build
+FROM node:25-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY server/package.json server/
@@ -11,7 +11,7 @@ COPY server server
 COPY web web
 RUN npm run build && npm prune --omit=dev
 
-FROM node:22-alpine
+FROM node:25-alpine
 # git lets HADOC_GIT_COMMIT=1 commit each edit in the data folder.
 RUN apk add --no-cache git
 ENV NODE_ENV=production \
